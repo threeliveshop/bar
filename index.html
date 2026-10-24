@@ -1,35 +1,140 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bar – Bestellungen</title>
+  <style>
+    :root { color-scheme: light; --ink:#202522; --muted:#68716b; --line:#e3e8e4; --green:#1f6b4a; --bg:#f4f6f4; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+    header { background:#173d2d; color:white; padding:26px 20px; }
+    .head { max-width:1000px; margin:auto; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    h1 { margin:0; font-size:clamp(1.5rem,4vw,2rem); }
+    .sub { margin:6px 0 0; color:#d4e3da; }
+    main { max-width:1000px; margin:26px auto; padding:0 16px 36px; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    h2 { margin:0; font-size:1.25rem; }
+    .count { background:#e0eee6; color:#1f6b4a; border-radius:999px; padding:6px 11px; font-size:.9rem; font-weight:700; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(260px,1fr); gap:18px; align-items:start; }
+    .panel { background:white; border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 3px 12px #14291b08; }
+    .orders { display:grid; gap:12px; margin-top:14px; }
+    .order { border:1px solid var(--line); border-radius:12px; padding:15px; }
+    .order-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .order-id { font-weight:800; }
+    .time { color:var(--muted); font-size:.86rem; margin-top:3px; }
+    .items { white-space:pre-line; margin:12px 0; line-height:1.5; }
+    .order-bottom { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .price { font-size:1.08rem; font-weight:800; }
+    .status { border-radius:999px; padding:5px 9px; background:#fff1cf; color:#77500a; font-size:.8rem; font-weight:700; }
+    .status.done { background:#e0eee6; color:#1f6b4a; }
+    label { display:block; font-size:.9rem; font-weight:650; margin:13px 0 6px; }
+    input, textarea, select { width:100%; border:1px solid #cfd8d1; border-radius:9px; padding:10px 11px; font:inherit; background:white; color:var(--ink); }
+    textarea { min-height:95px; resize:vertical; }
+    button { border:0; border-radius:9px; padding:10px 13px; font:inherit; font-weight:700; cursor:pointer; }
+    .primary { background:var(--green); color:white; width:100%; margin-top:16px; }
+    .secondary { background:#edf1ee; color:#26352c; }
+    .danger { background:#fff0ee; color:#9d3026; }
+    .empty { text-align:center; padding:36px 16px; color:var(--muted); border:1px dashed #cfd8d1; border-radius:12px; margin-top:14px; }
+    .note { color:var(--muted); font-size:.85rem; line-height:1.45; margin:12px 0 0; }
+    .filters { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+    .filters button.active { background:#173d2d; color:white; }
+    @media (max-width:720px) { .layout { grid-template-columns:1fr; } .head { align-items:flex-start; flex-direction:column; } }
+  </style>
 </head>
 <body>
-    <style>
-        body {
-            color:white;
-            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-            background-color: rgb(0, 160, 128);
-        }
-    </style>
-    <center>
-        <header style="font-size: xx-large;">Bar</header>
-
-       <form action="https://formsubmit.co/v08q3tjti@mozmail.com" method="POST" enctype="multipart/form-data">
-     <input type="text" name="name" required placeholder="Name"><br>
-     <p id="ergebnisText"></p>
-    <select name="drink" id="drink">
-            <option value="">--Bitte Wählen--</option>
+  <header>
+    <div class="head">
+      <div><h1>Bar · Bestellungen</h1><p class="sub">Alle Bestellungen übersichtlich an einem Ort – ohne E-Mail.</p></div>
+      <span class="count" id="headerCount">0 Bestellungen</span>
+    </div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <h2>Eingegangene Bestellungen</h2>
+      <button class="secondary" id="clearDone">Erledigte löschen</button>
+    </div>
+    <div class="layout">
+      <section class="panel">
+        <div class="filters" aria-label="Bestellungen filtern">
+          <button class="secondary active" data-filter="all">Alle</button>
+          <button class="secondary" data-filter="new">Neu</button>
+          <button class="secondary" data-filter="progress">In Bearbeitung</button>
+          <button class="secondary" data-filter="done">Erledigt</button>
+        </div>
+        <div id="orders" class="orders"></div>
+      </section>
+      <aside class="panel">
+        <h2>Bestellung hinzufügen</h2>
+        <form id="orderForm">
+          <label for="customer">Name </label>
+          <input id="customer" maxlength="80">
+          <label for="productSelect">Produkt auswählen</label>
+          <select id="productSelect">
+            <option value="">Bitte auswählen …</option>
             <option value="Getränk1">Getränk1</option>
             <option value="Getränk2">Getränk2</option>
-            <option value="Getränk3">Getränk3</option>
-        </select><br>
-         <br>
-     <button type="submit">Absenden</button>
-    </center>
+          </select>
+          <label for="items">Bestellte Produkte *</label>
+          <textarea id="items" required></textarea>
+          <input id="total" type="number">
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="new">Neu</option>
+            <option value="progress">In Bearbeitung</option>
+            <option value="done">Erledigt</option>
+          </select>
+          <button class="primary" type="submit">Bestellung speichern</button>
+        </form>
+      </aside>
+    </div>
+  </main>
+<script>
+(() => {
+  const KEY = 'bar-orders-v1';
+  let orders = [];
+  let filter = 'all';
+  try { orders = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (_) { orders = []; }
+  const $ = id => document.getElementById(id);
+  const statusNames = {new:'Neu', progress:'In Bearbeitung', done:'Erledigt'};
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(orders)); } catch (_) {} render(); };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function render() {
+    $('headerCount').textContent = `${orders.length} ${orders.length === 1 ? 'Bestellung' : 'Bestellungen'}`;
+    const visible = orders.filter(o => filter === 'all' || o.status === filter).sort((a,b) => b.created - a.created);
+    $('orders').innerHTML = visible.length ? visible.map(o => `
+      <article class="order">
+        <div class="order-top"><div><div class="order-id">${esc(o.customer || 'Bestellung')} · #${esc(o.id)}</div><div class="time">${new Date(o.created).toLocaleString('de-DE')}</div></div><span class="status ${o.status === 'done' ? 'done' : ''}">${statusNames[o.status]}</span></div>
+        <div class="items">${esc(o.items)}</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+          <select aria-label="Status ändern" data-status="${o.id}" style="width:auto;max-width:165px;padding:7px">${Object.entries(statusNames).map(([v,n])=>`<option value="${v}" ${o.status===v?'selected':''}>${n}</option>`).join('')}</select>
+          <button class="danger" data-delete="${o.id}" type="button">Löschen</button>
+        </div></div>
+      </article>`).join('') : `<div class="empty">${orders.length ? 'Keine Bestellungen in diesem Filter.' : 'Noch keine Bestellungen vorhanden. Neue Bestellungen erscheinen hier, sobald du sie einträgst.'}</div>`;
+    document.querySelectorAll('[data-status]').forEach(el => el.addEventListener('change', () => { const o=orders.find(x=>x.id===el.dataset.status); if(o){o.status=el.value;save();} }));
+    document.querySelectorAll('[data-delete]').forEach(el => el.addEventListener('click', () => { orders=orders.filter(x=>x.id!==el.dataset.delete);save(); }));
+    document.querySelectorAll('[data-filter]').forEach(el => el.classList.toggle('active',el.dataset.filter===filter));
+  }
+  document.querySelectorAll('[data-filter]').forEach(el => el.addEventListener('click', () => { filter=el.dataset.filter;render(); }));
+  $('productSelect').addEventListener('change', e => {
+    const product = e.target.value;
+    if (!product) return;
+    const itemsField = $('items');
+    itemsField.value = itemsField.value.trim()
+      ? itemsField.value.trim() + '\n1 × ' + product
+      : '1 × ' + product;
+    e.target.value = '';
+    itemsField.focus();
+  });
+  $('orderForm').addEventListener('submit', e => {
+    e.preventDefault();
+    orders.push({id:Date.now().toString(36).toUpperCase(),created:Date.now(),customer:$('customer').value.trim(),items:$('items').value.trim(),total:Number.isFinite(total)?total:null,status:$('status').value});
+    save(); e.target.reset();
+  });
+  $('clearDone').addEventListener('click', () => { orders=orders.filter(o=>o.status!=='done');save(); });
+  render();
+})();
+</script>
 </body>
 </html>
-
-
-
